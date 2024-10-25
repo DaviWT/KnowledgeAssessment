@@ -1,0 +1,22 @@
+*****************************************************
+Knowledge Assessment - Q1 Resolution
+Davi Wei Tokikawa
+*****************************************************
+
+Imagine a situation where you have a circuit able to activate and deactivate a purely resistive load with a 
+microcontroller. It is required to control the load power over time depending on the situation and the power cannot be 
+instantly changed from 0% to 100%. Explain in simple words a method to achieve such effect, looking at both hardware 
+and firmware aspects of the system. If an inductive load is used instead of a resistive load, can the same triggering 
+method be used or do special precautions need to be taken?
+
+Answer:
+--> A GPIO peripheral can be used as a PWM to control the power of a purely resistive load. A Pulse Width Modulation
+method consists basically on managing the load's power through the amount of time that it has input electrical current. 
+By using transistor's cut-off and saturation characteristics, a GPIO pin can be attached into a transistor base and 
+quickly commute its electrical state to generate a clock signal. When controlling the amount of time that the GPIO 
+state is either high or low, this high-low time ratio can represent the amount of percentage power that the load, 
+connected to the transistor's collector, will receive.
+--> For inductive loads, almost the same triggering method can be applied, but with the addition of a "flyback" diode
+connected in parallel to the inductor/motor, which allows the accumulated energy of the inductor to be dissipated when 
+the transistor/switch is off. Further precautions concerns about circuit voltage peaks, which can be softened by 
+applying a RC snubber circuit, or even a RCD one when dealing with highly inductive loads.
