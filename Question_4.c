@@ -38,12 +38,50 @@ static void IRAM_ATTR uart_intr_handle(void *arg)
 
 void vTaskUartDataParser(void *pvParameters)
 {
+    /*
+    Payload format considered for this parsing, according to PDF statement:
+
+    0__________________2______________6___________________7______________8__________________9___________________11__________________________________N
+    | [TOTAL_SIZE : 2] | [CRC_32 : 4] | [DESTINATION : 1] | [SOURCE : 1] | [COMMAND_ID : 1] | [PAYLOAD_SIZE : 2] | [COMMAND_PAYLOAD : PAYLOAD_SIZE] |
+    |__________________|______________|___________________|______________|__________________|____________________|__________________________________|
+    
+    Where: "[FIELD NAME : AMOUNT OF BYTES]"
+    */
+
     uint8_t *uart_rx_buffer;
     while(1)
     {
-        if(xQueueReceive(xUartQueue, uart_rx_buffer, 10 / portTICK_PERIOD_MS) == pdTRUE) // Yields when waiting for new FIFO element
+        // Yields while waiting for new FIFO element
+        if(xQueueReceive(xUartQueue, uart_rx_buffer, 10 / portTICK_PERIOD_MS) == pdTRUE) 
         {
-            // TODO: parsing here
+            uint16_t total_size =   uart_rx_buffer[0] |
+                                    uart_rx_buffer[1] << 8;
+
+            uint32_t obtained_crc32 =   uart_rx_buffer[2] |
+                                        uart_rx_buffer[3] << 8 |
+                                        uart_rx_buffer[4] << 16 |
+                                        uart_rx_buffer[5] << 24;
+
+            // Arbitrary function that calculates the CRC-32 value for a byte array
+            calculated_crc32 = calculate_crc32(uart_rx_buffer, total_size);
+            if(calculated_crc32 == obtained_crc32)
+            {
+                uint8_t dst_addr = uart_rx_buffer[6];
+                if(dst_addr == MY_UART_ADDRESS)
+                {
+                    uint8_t src_addr = uart_rx_buffer[7];
+                    uint8_t cmd_id = uart_rx_buffer[8];
+                    uint16_t payload_size = uart_rx_buffer[9] |
+                                            uart_rx_buffer[10] << 8;
+                    int8_t *cmd_payload = (int8_t*)malloc(payload_size * sizeof(int8_t)) 
+                    memcpy(cmd_payload, uart_rx_buffer + 11, payload_size * sizeof(int8_t));
+
+                    // DO SOMETHING WITH PARSED INFORMATION AND PAYLOAD
+
+                    free(cmd_payload);
+                }
+            }
+            
             free(uart_rx_buffer);
         }
     }
